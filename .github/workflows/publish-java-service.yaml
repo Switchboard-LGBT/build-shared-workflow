@@ -47,7 +47,6 @@ env:
 
 jobs:
   package-service:
-    permissions: write-all
     runs-on: ubuntu-latest
     steps:
       - name: Git - Checkout
@@ -121,7 +120,6 @@ jobs:
         run: ./gradlew check -Pversion=${{ inputs.release-version }} :${{ github.event.repository.name }}-io:publish :${{ github.event.repository.name }}:dockerPushNative
 
   deploy-service:
-    permissions: write-all
     runs-on: ubuntu-latest
     needs: package-service
     steps:
