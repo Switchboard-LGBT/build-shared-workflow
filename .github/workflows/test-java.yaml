@@ -25,6 +25,12 @@ on:
       GCP_AR_PASSWORD:
         description: 'The GCP Artifactry password to use for downloading JARs'
         required: true
+      GCP_WIP:
+        description: 'The GCP work identity provider'
+        required: true
+      GCP_SA_KEY:
+        description: 'The GCP service account key'
+        required: true
       CODACY_TOKEN:
         description: 'The Codacy token for sending coverage reports'
         required: true
@@ -35,6 +41,13 @@ jobs:
     steps:
       - name: Git - Checkout
         uses: actions/checkout@v3
+
+      - id: 'auth'
+        name: GCP - Auth
+        uses: google-github-actions/auth@v0.6.0
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIP }}
+          service_account: ${{ secrets.GCP_SA_KEY }}
 
       - name: Set up JDK
         uses: actions/setup-java@v3
