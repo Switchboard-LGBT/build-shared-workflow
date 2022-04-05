@@ -126,22 +126,6 @@ jobs:
       - name: Git - Checkout
         uses: actions/checkout@v3
 
-      - id: 'auth'
-        name: GCP - Auth
-        uses: google-github-actions/auth@v0.6.0
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WIP }}
-          service_account: ${{ secrets.GCP_SA_KEY }}
-
-      - name: GCP - Setup
-        uses: google-github-actions/setup-gcloud@v0.6.0
-
-      - name: GCP - Beta Components
-        run: yes | gcloud components install beta
-
-      - name: GCP - Docker Login
-        run: gcloud auth configure-docker
-
       - name: Terraform - Setup
         uses: hashicorp/setup-terraform@v1
         with:
