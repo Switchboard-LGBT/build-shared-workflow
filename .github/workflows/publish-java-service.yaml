@@ -68,7 +68,7 @@ jobs:
       - name: GCP - Docker Login
         run: gcloud auth configure-docker
 
-      - name: Set up JDK 17
+      - name: Set up JDK
         if: env.JAVA_PLATFORM != 'graal'
         uses: actions/setup-java@v3
         with:
@@ -76,7 +76,7 @@ jobs:
           distribution: ${{ inputs.java-distribution }}
           cache: 'gradle'
 
-      - name: Setup GraalVM CE
+      - name: Setup GraalVM CE 17
         if: env.JAVA_PLATFORM == 'graal' && inputs.java-version == 17
         uses: DeLaGuardo/setup-graalvm@5.0
         with:
