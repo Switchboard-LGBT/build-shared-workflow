@@ -1,0 +1,57 @@
+name: Java - Test
+on:
+  workflow_call:
+    inputs:
+      java-distribution:
+        description: 'The Java distribution to run using'
+        default: 'temurin'
+        required: false
+        type: string
+      java-version:
+        description: 'The Java version to run using'
+        default: 17
+        required: false
+        type: number
+    secrets:
+      GH_REPO_USER:
+        description: 'The GitHub user to use for downloading JARs (will be removed)'
+        required: true
+      GH_REPO_TOKEN:
+        description: 'The GitHub token to use for downloading JARs (will be removed)'
+        required: true
+      GCP_PROJECT_ID:
+        description: 'The GCP Project ID'
+        required: true
+      GCP_AR_PASSWORD:
+        description: 'The GCP Artifactry password to use for downloading JARs'
+        required: true
+      CODACY_TOKEN:
+        description: 'The Codacy token for sending coverage reports'
+        required: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git - Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: ${{ inputs.java-distribution }}
+          cache: 'gradle'
+
+      - name: Gradle - Test
+        run: ./gradlew test -i
+        env:
+          GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          GITHUB_TOKEN: ${{ secrets.GH_REPO_TOKEN }}
+          GITHUB_USERNAME: ${{ secrets.GH_REPO_USER }}
+          GCP_AR_PASSWORD: ${{ secrets.GCP_AR_PASSWORD }}
+
+      - name: Gradle - Coverage
+        uses: codacy/codacy-coverage-reporter-action@v1
+        with:
+          api-token: ${{ secrets.CODACY_TOKEN }}

@@ -1,0 +1,206 @@
+name: Java - Test
+on:
+  workflow_call:
+    inputs:
+      java-distribution:
+        description: 'The Java distribution to run using'
+        default: 'temurin'
+        required: false
+        type: string
+      java-version:
+        description: 'The Java version to run using'
+        default: 17
+        required: false
+        type: number
+      release-version:
+        description: 'The version of this release'
+        required: true
+        type: string
+    secrets:
+      GH_REPO_USER:
+        description: 'The GitHub user to use for downloading JARs (will be removed) *'
+        required: true
+      GH_REPO_TOKEN:
+        description: 'The GitHub token to use for downloading JARs (will be removed) *'
+        required: true
+      GCP_PROJECT_ID:
+        description: 'The GCP Project ID'
+        required: true
+      GCP_WIP:
+        description: 'The GCP work identity provider'
+        required: true
+      GCP_SA_KEY:
+        description: 'The GCP service account key'
+        required: true
+      GCP_AR_PASSWORD:
+        description: 'The GCP Artifactry password to use for downloading JARs'
+        required: true
+      CF_CREDENTIALS_JSON:
+        description: 'The Cloud Functions credentials file (To be removed I think)'
+        required: true
+      TERRAFORM_TOKEN:
+        description: 'The Terraform access token'
+        required: true
+
+env:
+  DOCKER_IMAGE: "eu.gcr.io/${{ secrets.GCP_PROJECT_ID }}/gcr/${{ github.event.repository.name }}"
+
+jobs:
+  package-service:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git - Checkout
+        uses: actions/checkout@v3
+
+      - id: 'auth'
+        name: GCP - Auth
+        uses: google-github-actions/auth@v0.6.0
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIP }}
+          service_account: ${{ secrets.GCP_SA_KEY }}
+
+      - name: GCP - Setup
+        uses: google-github-actions/setup-gcloud@v0.6.0
+
+      - name: GCP - Beta Components
+        run: yes | gcloud components install beta
+
+      - name: GCP - Docker Login
+        run: gcloud auth configure-docker
+
+      - name: Set up JDK 17
+        if: env.JAVA_PLATFORM != 'graal'
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: ${{ inputs.java-distribution }}
+          cache: 'gradle'
+
+      - name: Setup GraalVM CE
+        if: env.JAVA_PLATFORM == 'graal' && inputs.java-version == 17
+        uses: DeLaGuardo/setup-graalvm@5.0
+        with:
+          graalvm-version: 21.3.0.java17
+
+      - name: Java - Native Image
+        if: env.JAVA_PLATFORM == 'graal'
+        run: gu install native-image
+
+      - name: Update credentials file
+        uses: cschleiden/replace-tokens@v1
+        with:
+          files: '["service/src/main/resources/servicecredentials.json"]'
+        env:
+          CREDENTIALS: ${{ secrets.CF_CREDENTIALS_JSON }}
+
+      - name: Gradle - Docker Build & Push
+        if: env.JAVA_PLATFORM != 'graal'
+        env:
+          GCLOUD_IMAGE_REPOSITORY: gcr
+          TESTCONTAINERS_RYUK_DISABLED: true
+          GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          GITHUB_TOKEN: ${{ secrets.GH_REPO_TOKEN }}
+          GITHUB_USERNAME: ${{ secrets.GH_REPO_USER }}
+          GCP_AR_PASSWORD: ${{ secrets.GCP_AR_PASSWORD }}
+          RELEASE_TAG: ${{ inputs.release-version }}
+          DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}
+        run: ./gradlew check -Pversion=${{ inputs.release-version }} :${{ github.event.repository.name }}-io:publish :${{ github.event.repository.name }}:dockerPush
+
+      - name: Gradle - Docker Build & Push
+        if: env.JAVA_PLATFORM == 'graal'
+        env:
+          GCLOUD_IMAGE_REPOSITORY: gcr
+          TESTCONTAINERS_RYUK_DISABLED: true
+          GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          GITHUB_TOKEN: ${{ secrets.GH_REPO_TOKEN }}
+          GITHUB_USERNAME: ${{ secrets.GH_REPO_USER }}
+          GCP_AR_PASSWORD: ${{ secrets.GCP_AR_PASSWORD }}
+          RELEASE_TAG: ${{ inputs.release-version }}
+          DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}
+        run: ./gradlew check -Pversion=${{ inputs.release-version }} :${{ github.event.repository.name }}-io:publish :${{ github.event.repository.name }}:dockerPushNative
+
+  deploy-service:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    needs: package-service
+    steps:
+      - name: Git - Checkout
+        uses: actions/checkout@v3
+
+      - id: 'auth'
+        name: GCP - Auth
+        uses: google-github-actions/auth@v0.6.0
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIP }}
+          service_account: ${{ secrets.GCP_SA_KEY }}
+
+      - name: GCP - Setup
+        uses: google-github-actions/setup-gcloud@v0.6.0
+
+      - name: GCP - Beta Components
+        run: yes | gcloud components install beta
+
+      - name: GCP - Docker Login
+        run: gcloud auth configure-docker
+
+      - name: Terraform - Setup
+        uses: hashicorp/setup-terraform@v1
+        with:
+          cli_config_credentials_token: ${{ secrets.TERRAFORM_TOKEN }}
+
+      - name: Terraform - Format
+        id: fmt
+        run: terraform -chdir=infr fmt -check
+
+      - name: Terraform - Init
+        id: init
+        run: terraform -chdir=infr init
+
+      - name: Terraform - Validate
+        id: validate
+        run: terraform -chdir=infr validate -no-color
+
+      - name: Terraform - Plan
+        id: plan
+        if: github.event_name == 'pull_request'
+        run: terraform -chdir=infr plan -no-color -var 'version_id="${{ inputs.release-version }}"' -var='docker_image="${{ env.DOCKER_IMAGE }}"'
+        continue-on-error: true
+
+      - name: Terraform - Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      - uses: actions/github-script@v6.0.0
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+
+            </details>
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      - name: Terraform - Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform -chdir=infr apply -auto-approve -var 'version_id=${{ inputs.release-version }}' -var 'docker_image=${{ env.DOCKER_IMAGE }}'
+
