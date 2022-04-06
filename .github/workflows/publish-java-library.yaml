@@ -59,4 +59,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_REPO_TOKEN }}
           GITHUB_USERNAME: ${{ secrets.GH_REPO_USER }}
           GCP_AR_PASSWORD: ${{ secrets.GCP_AR_PASSWORD }}
-        run: ./gradlew -Pversion=${{ steps.semvers.outputs.minor }} publish
+        run: ./gradlew -Pversion=${{ inputs.release-version }} publish
