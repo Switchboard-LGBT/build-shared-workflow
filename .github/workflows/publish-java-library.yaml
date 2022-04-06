@@ -1,0 +1,62 @@
+name: Java - Publish Library
+on:
+  workflow_call:
+    inputs:
+      java-distribution:
+        description: 'The Java distribution to run using'
+        default: 'temurin'
+        required: false
+        type: string
+      java-version:
+        description: 'The Java version to run using'
+        default: 17
+        required: false
+        type: number
+      release-version:
+        description: 'The version of this release'
+        required: true
+        type: string
+    secrets:
+      GH_REPO_USER:
+        description: 'The GitHub user to use for downloading JARs (will be removed) *'
+        required: true
+      GH_REPO_TOKEN:
+        description: 'The GitHub token to use for downloading JARs (will be removed) *'
+        required: true
+      GCP_WIP:
+        description: 'The GCP work identity provider'
+        required: true
+      GCP_SA_KEY:
+        description: 'The GCP service account key'
+        required: true
+      GCP_AR_PASSWORD:
+        description: 'The GCP Artifactry password to use for downloading JARs'
+        required: true
+
+jobs:
+  publish-libraries:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
+      
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: google-github-actions/auth@v0.6.0
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIP }}
+          service_account: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: ${{ inputs.java-distribution }}
+          cache: 'gradle'
+
+      - name: Publish artifact
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_REPO_TOKEN }}
+          GITHUB_USERNAME: ${{ secrets.GH_REPO_USER }}
+          GCP_AR_PASSWORD: ${{ secrets.GCP_AR_PASSWORD }}
+        run: ./gradlew -Pversion=${{ steps.semvers.outputs.minor }} publish
