@@ -1,0 +1,3 @@
+{
+  "extends": ["github>Switchboard-LGBT/renovate-bot", ":skipStatusChecks"]
+}
