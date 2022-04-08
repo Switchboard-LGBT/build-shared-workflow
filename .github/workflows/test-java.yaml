@@ -34,6 +34,9 @@ on:
       CODACY_TOKEN:
         description: 'The Codacy token for sending coverage reports'
         required: true
+      SONAR_TOKEN:
+        description: 'The sonar token for analysis'
+        required: true
 
 jobs:
   test:
@@ -57,12 +60,13 @@ jobs:
           cache: 'gradle'
 
       - name: Gradle - Test
-        run: ./gradlew test -i
+        run: ./gradlew test sonarqube -i
         env:
           GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
           GITHUB_TOKEN: ${{ secrets.GH_REPO_TOKEN }}
           GITHUB_USERNAME: ${{ secrets.GH_REPO_USER }}
           GCP_AR_PASSWORD: ${{ secrets.GCP_AR_PASSWORD }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Gradle - Coverage
         uses: codacy/codacy-coverage-reporter-action@v1
