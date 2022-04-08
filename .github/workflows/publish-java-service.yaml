@@ -183,6 +183,6 @@ jobs:
             })
 
       - name: Terraform - Apply
-        if: github.ref_type == 'tag' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform -chdir=infr apply -auto-approve -var 'version_id=${{ inputs.release-version }}' -var 'docker_image=${{ env.DOCKER_IMAGE }}'
 
