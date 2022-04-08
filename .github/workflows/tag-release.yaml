@@ -10,7 +10,7 @@ jobs:
   create-release:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.semvers.outputs.minor }}
+      version: ${{ steps.release.outputs.version }}
     steps:
       - name: Turnstyle
         uses: softprops/turnstyle@v1
@@ -19,29 +19,11 @@ jobs:
 
       - name: Git - Checkout
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          submodules: true
 
-      - name: Version - Get previous
-        id: previoustag
-        uses: "WyriHaximus/github-action-get-previous-tag@v1"
-        with:
-          fallback: 1.0.0
-
-      - name: Version - Get next
-        id: semvers
-        uses: "WyriHaximus/github-action-next-semvers@v1"
-        with:
-          version: ${{ steps.previoustag.outputs.tag }}
-
-      - name: Version - Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
+      - name: Create release
+        id: release
+        uses: rymndhng/release-on-push-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.semvers.outputs.minor }}
-          name: ${{ steps.semvers.outputs.v_minor }}
-          draft: false
-          prerelease: false
+          bump_version_scheme: minor
