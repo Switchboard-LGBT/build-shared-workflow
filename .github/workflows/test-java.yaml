@@ -71,7 +71,7 @@ jobs:
 
       - name: Gradle - Test & Sonar
         if: github.ref == 'refs/heads/main'
-        run: ./gradlew test sonarqube -i
+        run: ./gradlew test -i
         env:
           GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
           GITHUB_TOKEN: ${{ secrets.GH_REPO_TOKEN }}
