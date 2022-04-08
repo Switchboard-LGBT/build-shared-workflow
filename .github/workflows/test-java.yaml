@@ -59,7 +59,18 @@ jobs:
           distribution: ${{ inputs.java-distribution }}
           cache: 'gradle'
 
-      - name: Gradle - Test
+      - name: Gradle - Test & Sonar
+        if: github.ref != 'refs/heads/main'
+        run: ./gradlew test -i
+        env:
+          GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          GITHUB_TOKEN: ${{ secrets.GH_REPO_TOKEN }}
+          GITHUB_USERNAME: ${{ secrets.GH_REPO_USER }}
+          GCP_AR_PASSWORD: ${{ secrets.GCP_AR_PASSWORD }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Gradle - Test & Sonar
+        if: github.ref == 'refs/heads/main'
         run: ./gradlew test sonarqube -i
         env:
           GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
@@ -70,6 +81,7 @@ jobs:
 
       - name: Gradle - Coverage
         uses: codacy/codacy-coverage-reporter-action@v1
+        if: github.ref == 'refs/heads/main'
         with:
           api-token: ${{ secrets.CODACY_TOKEN }}
         continue-on-error: true
