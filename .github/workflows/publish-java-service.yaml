@@ -41,6 +41,9 @@ on:
       TERRAFORM_TOKEN:
         description: 'The Terraform access token'
         required: true
+      SENTRY_TOKEN:
+        description: 'The Sentry access token'
+        required: true
 
 env:
   DOCKER_IMAGE: "eu.gcr.io/${{ secrets.GCP_PROJECT_ID }}/gcr/${{ github.event.repository.name }}"
