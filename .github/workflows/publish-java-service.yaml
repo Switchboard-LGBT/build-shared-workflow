@@ -186,3 +186,13 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform -chdir=infr apply -auto-approve -var 'version_id=${{ inputs.release-version }}' -var 'docker_image=${{ env.DOCKER_IMAGE }}'
 
+      - name: Create Sentry release
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_TOKEN }}
+          SENTRY_ORG: switchboard-lgbt
+          SENTRY_PROJECT: ${{ github.event.repository.name }}
+        with:
+          environment: production
+          version: ${{ inputs.release-version }}
+
