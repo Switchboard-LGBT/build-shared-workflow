@@ -194,6 +194,7 @@ jobs:
 
       - name: Release Tracking - Sentry
         uses: getsentry/action-release@v1
+        continue-on-error: true
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_TOKEN }}
           SENTRY_ORG: switchboard-lgbt
@@ -204,6 +205,7 @@ jobs:
 
       - name: Release Tracking - Rollbar
         uses: rollbar/github-deploy-action@2.1.1
+        continue-on-error: true
         id: rollbar_deploy
         with:
           environment: production
