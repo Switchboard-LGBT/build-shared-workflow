@@ -99,6 +99,15 @@ jobs:
         env:
           CREDENTIALS: ${{ secrets.CF_CREDENTIALS_JSON }}
 
+      - name: New Relic - Download agent
+        run: curl --output-dir "tmp" --create-dirs -O https://download.newrelic.com/newrelic/java-agent/newrelic-agent/current/newrelic-java.zip
+
+      - name: New Relic - Extract agent
+        run: 7z x tmp/newrelic-java.zip
+
+      - name: New Relic - Check folder
+        run: ls tmp
+
       - name: Gradle - Docker Build & Push
         if: env.JAVA_PLATFORM != 'graal'
         env:
