@@ -110,7 +110,7 @@ jobs:
           GCP_AR_PASSWORD: ${{ secrets.GCP_AR_PASSWORD }}
           RELEASE_TAG: ${{ inputs.release-version }}
           DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}
-        run: ./gradlew check -Pversion=${{ inputs.release-version }} :${{ github.event.repository.name }}-io:publish :${{ github.event.repository.name }}:dockerPush
+        run: ./gradlew check -x test -Pversion=${{ inputs.release-version }} :${{ github.event.repository.name }}-io:publish :${{ github.event.repository.name }}:dockerPush
 
       - name: Gradle - Docker Build & Push
         if: env.JAVA_PLATFORM == 'graal'
@@ -123,7 +123,7 @@ jobs:
           GCP_AR_PASSWORD: ${{ secrets.GCP_AR_PASSWORD }}
           RELEASE_TAG: ${{ inputs.release-version }}
           DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}
-        run: ./gradlew check -Pversion=${{ inputs.release-version }} :${{ github.event.repository.name }}-io:publish :${{ github.event.repository.name }}:dockerPushNative
+        run: ./gradlew check -x test -Pversion=${{ inputs.release-version }} :${{ github.event.repository.name }}-io:publish :${{ github.event.repository.name }}:dockerPushNative
 
   deploy-service:
     runs-on: ubuntu-latest
