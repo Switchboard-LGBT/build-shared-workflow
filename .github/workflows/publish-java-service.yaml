@@ -89,9 +89,12 @@ jobs:
 
       - name: Setup GraalVM CE 17
         if: inputs.platform == 'graal' && inputs.java-version == 17
-        uses: DeLaGuardo/setup-graalvm@5.0
+        uses: graalvm/setup-graalvm@v1
         with:
-          graalvm-version: 21.3.0.java17
+          version: 'latest'
+          java-version: '17'
+          components: 'native-image'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Java - Native Image
         if: inputs.platform == 'graal'
