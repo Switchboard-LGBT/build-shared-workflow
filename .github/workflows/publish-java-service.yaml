@@ -21,11 +21,6 @@ on:
         default: java
         required: false
         type: string
-      runon:
-        description: 'The server to run upon'
-        default: ubuntu-latest
-        required: false
-        type: string
     secrets:
       GH_REPO_USER:
         description: 'The GitHub user to use for downloading JARs (will be removed) *'
@@ -63,7 +58,7 @@ env:
 
 jobs:
   package-service:
-    runs-on: inputs.runon
+    runs-on: buildjet-4vcpu-ubuntu-2004
     steps:
       - name: Git - Checkout
         uses: actions/checkout@v3
