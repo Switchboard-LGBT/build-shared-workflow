@@ -87,7 +87,7 @@ jobs:
           distribution: ${{ inputs.java-distribution }}
           cache: 'gradle'
 
-      - name: Setup GraalVM CE 17
+      - name: Setup GraalVM
         if: inputs.platform == 'graal' && inputs.java-version == 17
         uses: graalvm/setup-graalvm@v1
         with:
