@@ -64,22 +64,22 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Env variables - Main / Graal
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && inputs.platform == 'graal'
         run: |
           echo "LIBRARY_BUILD=publish" >> $GITHUB_ENV
           echo "SERVICE_BUILD=dockerPushNative" >> $GITHUB_ENV
       - name: Env variables - Non-main / Graal
-        if: github.ref != 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref != 'refs/heads/main' && inputs.platform == 'graal'
         run: |
           echo "LIBRARY_BUILD=build" >> $GITHUB_ENV
           echo "SERVICE_BUILD=dockerBuildNative" >> $GITHUB_ENV
       - name: Env variables - Main / Java
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && inputs.platform != 'graal'
         run: |
           echo "LIBRARY_BUILD=publish" >> $GITHUB_ENV
           echo "SERVICE_BUILD=dockerPush" >> $GITHUB_ENV
       - name: Env variables - Non-main / Java
-        if: github.ref != 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref != 'refs/heads/main' && inputs.platform != 'graal'
         run: |
           echo "LIBRARY_BUILD=build" >> $GITHUB_ENV
           echo "SERVICE_BUILD=dockerBuild" >> $GITHUB_ENV
