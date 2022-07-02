@@ -1,6 +1,7 @@
 name: Release - Tag
 on:
   workflow_call:
+    inputs:
     outputs:
       version:
         description: "The release version"
@@ -20,6 +21,15 @@ jobs:
       - name: Git - Checkout
         uses: actions/checkout@v3
 
+      - name: Env variables - Main
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "DRY_RUN=false" >> $GITHUB_ENV
+      - name: Env variables - Non-main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "DRY_RUN=true" >> $GITHUB_ENV
+
       - name: Create release
         id: release
         uses: rymndhng/release-on-push-action@master
@@ -29,3 +39,4 @@ jobs:
           bump_version_scheme: minor
           use_github_release_notes: true
           tag_prefix: ""
+          dry_run: ${{ env.DRY_RUN }}

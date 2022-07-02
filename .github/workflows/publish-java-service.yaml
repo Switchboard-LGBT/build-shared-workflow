@@ -63,6 +63,27 @@ jobs:
       - name: Git - Checkout
         uses: actions/checkout@v3
 
+      - name: Env variables - Main / Graal
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          echo "LIBRARY_BUILD=publish" >> $GITHUB_ENV
+          echo "SERVICE_BUILD=dockerPushNative" >> $GITHUB_ENV
+      - name: Env variables - Non-main / Graal
+        if: github.ref != 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          echo "LIBRARY_BUILD=build" >> $GITHUB_ENV
+          echo "SERVICE_BUILD=dockerBuildNative" >> $GITHUB_ENV
+      - name: Env variables - Main / Java
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          echo "LIBRARY_BUILD=publish" >> $GITHUB_ENV
+          echo "SERVICE_BUILD=dockerPush" >> $GITHUB_ENV
+      - name: Env variables - Non-main / Java
+        if: github.ref != 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          echo "LIBRARY_BUILD=build" >> $GITHUB_ENV
+          echo "SERVICE_BUILD=dockerBuild" >> $GITHUB_ENV
+
       - id: 'auth'
         name: GCP - Auth
         uses: google-github-actions/auth@v0.6.0
@@ -108,7 +129,6 @@ jobs:
           CREDENTIALS: ${{ secrets.CF_CREDENTIALS_JSON }}
 
       - name: Gradle - Docker Build & Push
-        if: inputs.platform != 'graal'
         env:
           GCLOUD_IMAGE_REPOSITORY: gcr
           TESTCONTAINERS_RYUK_DISABLED: true
@@ -118,24 +138,12 @@ jobs:
           GCP_AR_PASSWORD: ${{ secrets.GCP_AR_PASSWORD }}
           RELEASE_TAG: ${{ inputs.release-version }}
           DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}
-        run: ./gradlew check -x test -Pversion=${{ inputs.release-version }} :${{ github.event.repository.name }}-io:publish :${{ github.event.repository.name }}:dockerPush
-
-      - name: Gradle - Docker Build & Push
-        if: inputs.platform == 'graal'
-        env:
-          GCLOUD_IMAGE_REPOSITORY: gcr
-          TESTCONTAINERS_RYUK_DISABLED: true
-          GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
-          GITHUB_TOKEN: ${{ secrets.GH_REPO_TOKEN }}
-          GITHUB_USERNAME: ${{ secrets.GH_REPO_USER }}
-          GCP_AR_PASSWORD: ${{ secrets.GCP_AR_PASSWORD }}
-          RELEASE_TAG: ${{ inputs.release-version }}
-          DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}
-        run: ./gradlew check -x test -Pversion=${{ inputs.release-version }} :${{ github.event.repository.name }}-io:publish :${{ github.event.repository.name }}:dockerPushNative
+        run: ./gradlew check -x test -Pversion=${{ inputs.release-version }} :${{ github.event.repository.name }}-io:${{ env.LIBRARY_BUILD }} :${{ github.event.repository.name }}:${{ env.SERVICE_BUILD }}
 
   deploy-service:
     runs-on: ubuntu-latest
     needs: package-service
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: Git - Checkout
         uses: actions/checkout@v3
